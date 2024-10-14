@@ -2,7 +2,6 @@
 	heap
 	This question requires you to implement a binary heap function
 */
-// I AM NOT DONE
 
 use std::cmp::Ord;
 use std::default::Default;
@@ -23,7 +22,7 @@ where
     pub fn new(comparator: fn(&T, &T) -> bool) -> Self {
         Self {
             count: 0,
-            items: vec![T::default()],
+            items: vec![T::default()], // Initial dummy element
             comparator,
         }
     }
@@ -37,7 +36,28 @@ where
     }
 
     pub fn add(&mut self, value: T) {
-        //TODO
+        // Add the new value at the end of the vector
+        self.count += 1;
+        if self.count >= self.items.len() {
+            self.items.push(value);
+        } else {
+            self.items[self.count] = value;
+        }
+        // Restore the heap property by "bubbling up"
+        self.bubble_up(self.count);
+    }
+
+    fn bubble_up(&mut self, idx: usize) {
+        let mut current_idx = idx;
+        while current_idx > 1 {
+            let parent_idx = self.parent_idx(current_idx);
+            if (self.comparator)(&self.items[current_idx], &self.items[parent_idx]) {
+                self.items.swap(current_idx, parent_idx);
+                current_idx = parent_idx;
+            } else {
+                break; // Heap property is satisfied
+            }
+        }
     }
 
     fn parent_idx(&self, idx: usize) -> usize {
@@ -56,9 +76,49 @@ where
         self.left_child_idx(idx) + 1
     }
 
-    fn smallest_child_idx(&self, idx: usize) -> usize {
-        //TODO
-		0
+    fn smallest_child_idx(&self, idx: usize) -> Option<usize> {
+        let left_idx = self.left_child_idx(idx);
+        let right_idx = self.right_child_idx(idx);
+        
+        if left_idx > self.count {
+            return None; // No children
+        }
+        
+        if right_idx > self.count {
+            return Some(left_idx); // Only left child exists
+        }
+
+        if (self.comparator)(&self.items[left_idx], &self.items[right_idx]) {
+            Some(left_idx) // Left child is smaller
+        } else {
+            Some(right_idx) // Right child is smaller
+        }
+    }
+
+    pub fn remove_root(&mut self) -> Option<T> {
+        if self.count == 0 {
+            return None; // Heap is empty
+        }
+        // Swap the root with the last element
+        self.items.swap(1, self.count);
+        let removed_item = self.items.pop(); // Remove the last element (original root)
+        self.count -= 1;
+        // Restore the heap property by "bubbling down"
+        self.bubble_down(1);
+        removed_item
+    }
+
+    fn bubble_down(&mut self, idx: usize) {
+        let mut current_idx = idx;
+        while self.children_present(current_idx) {
+            let smallest_child_idx = self.smallest_child_idx(current_idx).unwrap();
+            if (self.comparator)(&self.items[smallest_child_idx], &self.items[current_idx]) {
+                self.items.swap(current_idx, smallest_child_idx);
+                current_idx = smallest_child_idx;
+            } else {
+                break; // Heap property is satisfied
+            }
+        }
     }
 }
 
@@ -84,8 +144,7 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<T> {
-        //TODO
-		None
+        self.remove_root()
     }
 }
 
@@ -116,6 +175,7 @@ impl MaxHeap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
     #[test]
     fn test_empty_heap() {
         let mut heap = MaxHeap::new::<i32>();
